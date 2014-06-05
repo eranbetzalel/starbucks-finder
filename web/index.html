@@ -1,0 +1,110 @@
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="css/main.css" />
+    <script type="text/javascript" src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript">
+      $(function () {
+          $('#searchBtn').click(function () {
+              $('#loadingResults').show();
+              $('#resultsPanelWrapper').hide();
+
+              var addressQuery = $('#address').val();
+
+              if(!addressQuery || addressQuery.length == 0) {
+                  $('#loadingResults').hide();
+
+                  alert('Please enter address to query.');
+              }
+
+              $.getJSON('/find?address=' + addressQuery, function (data) {
+                  if(data.error) {
+                      alert('An error occurred on server operation. ' + data.error);
+
+                      return;
+                  }
+
+                  $('#resultsPanel tbody').empty();
+
+                  $('#resultsPanel tbody').html(
+                      data.locations.map(function (location) {
+                          return '<tr><td>' + location.city + '</td><td>' + location.address + '</td></tr>';
+                      }));
+
+                  $('#resultsPanelWrapper').show();
+              })
+              .fail(function (data, textStatus, error) {
+                  console.error('An error occurred while querying for address (' + addressQuery + '): ' + error.message);
+                  alert('An error occurred on server operation.');
+              })
+              .always(function() {
+                  $('#loadingResults').hide();
+              });
+          });
+
+          $('#uploadLocationsBtn').click(function(){
+              var formData = new FormData($('#uploadForm')[0]);
+
+              $('#uploadProgress').show();
+
+              $.ajax({
+                  url: '/upload',
+                  type: 'POST',
+                  success: function () {
+                      alert('File was uploaded successfully.');
+                  },
+                  data: formData,
+                  cache: false,
+                  contentType: false,
+                  processData: false
+              })
+              .fail(function (data, textStatus, errorMessage) {
+                  console.error('An error occurred while uploading starbucks location file: ' + errorMessage);
+                  alert('An error occurred on upload operation.');
+              })
+              .always(function() {
+                  $('#uploadProgress').hide();
+              });
+          });
+
+          function progressHandlingFunction(e){
+              if(e.lengthComputable){
+                  $('#uploadProgress').attr({value:e.loaded,max:e.total});
+              }
+          }
+      });
+    </script>
+    <title>Starbucks Coffee Finder</title>
+  </head>
+  <body>
+    <h1>Starbucks Coffee Finder</h1>
+    <p>Welcome to Starbucks Coffee Finder - the easy way to find your nearest (within 5KM) starbucks.</p>
+
+    <h2>Upload Starbucks Locations</h2>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <label for="locationsFile">Locations file (CSV):</label>
+        <input id="locationsFile" name="locationsFile" type="file" />
+        <input id="uploadLocationsBtn" type="button" value="Upload" />
+    </form>
+    <progress id="uploadProgress"></progress>
+
+    <h2>Search for nearby Starbucks</h2>
+    <label for="address" >Enter address:</label>
+    <input id="address" type="text" />
+    <input id="searchBtn" type="button" value="Search" />
+
+    <div id="loadingResults">Loading...</div>
+    <div id="resultsPanelWrapper">
+        <h3>Query results</h3>
+        <table id="resultsPanel" summary="Employee Pay Sheet">
+            <thead>
+            <tr>
+                <th scope="col">City</th>
+                <th scope="col">Address</th>
+            </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+  </body>
+</html>
